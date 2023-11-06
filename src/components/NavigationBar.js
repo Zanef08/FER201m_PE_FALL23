@@ -1,5 +1,4 @@
 import { Box, Typography, Divider, List, ListItem, ListItemButton, ListItemText } from "@mui/material";
-import React from "react";
 import CssBaseline from "@mui/material/CssBaseline";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
@@ -8,6 +7,9 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Button from "@mui/material/Button";
 import Drawer from "@mui/material/Drawer";
 import { Link } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { googleLogout, useGoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 
 const drawerWidth = 240;
 const navItems = ['Home', 'Dashboard', 'Contact'];
@@ -39,7 +41,35 @@ export default function DrawerAppBar(props) {
     );
 
     const container = window !== undefined ? () => window().document.body : undefined;
+    const [user, setUser] = useState(null);
+    const [profile, setProfile] = useState(null);
+    const [userInfoVisible, setUserInfoVisible] = useState(false);
 
+    const login = useGoogleLogin({
+        onSuccess: (codeResponse) => setUser(codeResponse),
+        onError: (error) => console.log('Login Failed:', error)
+    });
+
+    useEffect(() => {
+        if (user) {
+            axios.get(`https://www.googleapis.com/oauth2/v1/userinfo?access_token=${user.access_token}`, {
+                headers: {
+                    Authorization: `Bearer ${user.access_token}`,
+                    Accept: 'application/json'
+                }
+            })
+                .then((res) => {
+                    setProfile(res.data);
+                })
+                .catch((err) => console.log(err));
+        }
+    }, [user]);
+
+    const logOut = () => {
+        googleLogout();
+        setProfile(null);
+        setUserInfoVisible(false);
+    };
 
     return (
         <Box sx={{ display: 'flex' }}>
@@ -71,6 +101,10 @@ export default function DrawerAppBar(props) {
                             </Link>
                         ))}
                     </Box>
+                    {/* Add "Sign in with Google" button here */}
+                    <Button className="google-login-button" onClick={login}>
+                        Sign in with Google 🚀
+                    </Button>
                 </Toolbar>
             </AppBar>
             <nav>
